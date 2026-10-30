@@ -1,0 +1,2395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Roba un Huevo 2D - Roblox Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap');
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            background-color: #090d16;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', cursive;
+        }
+
+        .font-game {
+            font-family: 'Fredoka One', cursive;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 16px 32px rgba(0,0,0,0.6);
+        }
+
+        .glass-button {
+            transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.4);
+            cursor: pointer;
+            pointer-events: auto !important;
+        }
+
+        .glass-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+        }
+
+        @keyframes floatAnim {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .animate-float {
+            animation: floatAnim 3s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.9); }
+        }
+
+        .glow-amber {
+            animation: pulseGlow 2s infinite;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a855f7;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <div id="game-container">
+        <!-- Canvas Rendering Layer -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Top Toast Notification Banner -->
+        <div id="toast-banner" class="hidden absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300">
+            <div class="glass-panel px-6 py-3 rounded-2xl border-amber-400 bg-amber-500/20 text-amber-200 font-game text-base sm:text-lg flex items-center gap-3 shadow-2xl animate-bounce">
+                <span id="toast-icon" class="text-2xl">🥚</span>
+                <span id="toast-msg">¡Aviso del Juego!</span>
+            </div>
+        </div>
+
+        <!-- Dynamic HUD Overlay -->
+        <div id="hud-layer" class="hidden absolute inset-0 pointer-events-none flex flex-col justify-between p-3 sm:p-5 z-20">
+            <!-- Top HUD Bar -->
+            <div class="flex flex-wrap justify-between items-start gap-2 w-full max-w-7xl mx-auto">
+                <!-- Stats Badges -->
+                <div class="flex flex-wrap gap-2 pointer-events-auto">
+                    <!-- Coins -->
+                    <div class="glass-panel px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl flex items-center gap-2 border-amber-500/50">
+                        <i class="fa-solid fa-coins text-amber-400 text-xl sm:text-2xl drop-shadow"></i>
+                        <div>
+                            <span class="text-[10px] sm:text-xs text-amber-300 font-bold uppercase tracking-wide block">Monedas</span>
+                            <span id="hud-coins" class="text-base sm:text-xl font-game text-amber-300 font-extrabold">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Speed -->
+                    <div class="glass-panel px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl flex items-center gap-2 border-cyan-500/50">
+                        <i class="fa-solid fa-bolt text-cyan-400 text-xl sm:text-2xl drop-shadow"></i>
+                        <div>
+                            <span class="text-[10px] sm:text-xs text-cyan-300 font-bold uppercase tracking-wide block">Velocidad</span>
+                            <span id="hud-speed" class="text-base sm:text-xl font-game text-cyan-300 font-extrabold">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Day/Night Cycle Display -->
+                    <div id="hud-daynight-container" class="glass-panel px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl flex items-center gap-2 border-amber-400/50">
+                        <span id="hud-daynight-icon" class="text-xl sm:text-2xl">☀️</span>
+                        <div>
+                            <span class="text-[10px] sm:text-xs text-slate-300 font-bold uppercase block">Tiempo</span>
+                            <span id="hud-daynight-text" class="text-xs sm:text-sm font-game text-amber-300">Día (02:00)</span>
+                        </div>
+                    </div>
+
+                    <!-- Passive Income -->
+                    <div class="glass-panel px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl flex items-center gap-2 border-emerald-500/50">
+                        <i class="fa-solid fa-chart-line text-emerald-400 text-lg"></i>
+                        <div>
+                            <span class="text-[10px] sm:text-xs text-emerald-300 font-bold uppercase">Ingreso</span>
+                            <span id="hud-income" class="text-sm sm:text-lg font-game text-emerald-300">+0/s</span>
+                        </div>
+                    </div>
+
+                    <!-- Base Pets Badge -->
+                    <div class="glass-panel px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl flex items-center gap-2 border-purple-500/50">
+                        <i class="fa-solid fa-paw text-purple-400 text-lg"></i>
+                        <div>
+                            <span class="text-[10px] sm:text-xs text-purple-300 font-bold uppercase">Mascotas</span>
+                            <span id="pet-count-hud" class="text-sm sm:text-lg font-game text-purple-300">0/3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reset Timer & Zone Badge -->
+                <div class="flex flex-col items-end gap-1.5 pointer-events-auto">
+                    <!-- 5-Minute Reset Timer Badge -->
+                    <div class="glass-panel px-3 py-1.5 rounded-2xl flex items-center gap-2 border-purple-500/50 glow-amber">
+                        <i class="fa-solid fa-clock text-purple-400 text-base animate-spin"></i>
+                        <div>
+                            <span class="text-[9px] text-purple-300 font-bold uppercase tracking-wider block">Reinicio Huevos</span>
+                            <span id="hud-reset-timer" class="text-xs sm:text-sm font-pixel text-purple-200">05:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Active Zone Indicator -->
+                    <div class="glass-panel px-3 py-1.5 rounded-2xl flex items-center gap-2 border-indigo-500/50">
+                        <i class="fa-solid fa-location-dot text-indigo-400"></i>
+                        <span id="hud-zone" class="font-game text-xs sm:text-sm text-indigo-200">Zona: Base Principal</span>
+                    </div>
+
+                    <!-- Carried Egg Status Indicator -->
+                    <div id="hud-egg-status" class="hidden glass-panel px-3 py-1.5 rounded-2xl bg-red-500/30 border-red-400 animate-bounce flex items-center gap-2">
+                        <span class="text-lg">🥚🏃</span>
+                        <span id="hud-egg-text" class="font-game text-[10px] sm:text-xs text-red-200 uppercase">¡LLEVAS UN HUEVO! (ESCAPA A TU BASE)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Control Action Bar & Mobile Controls -->
+            <div class="flex flex-wrap justify-between items-end w-full max-w-7xl mx-auto pointer-events-auto gap-2">
+                <!-- Left Menu Quick Buttons -->
+                <div class="flex flex-wrap gap-2 items-center">
+                    <button id="btn-open-inventory" class="glass-panel glass-button bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-game px-3.5 py-2 rounded-2xl flex items-center gap-2 border-purple-300 text-xs sm:text-sm shadow-lg glow-amber">
+                        <i class="fa-solid fa-box-open text-base"></i> INVENTARIO (I)
+                    </button>
+
+                    <button id="btn-open-shop" class="glass-panel glass-button bg-amber-500 hover:bg-amber-400 text-amber-950 font-game px-3 py-2 rounded-2xl flex items-center gap-1.5 border-amber-300 text-xs">
+                        <i class="fa-solid fa-store"></i> MEJORAS
+                    </button>
+
+                    <button id="btn-open-bat-shop" class="glass-panel glass-button bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-game px-3 py-2 rounded-2xl flex items-center gap-1.5 border-red-300 text-xs">
+                        <i class="fa-solid fa-baseball-bat-ball"></i> TIENDA BATES
+                    </button>
+
+                    <button id="btn-save-manual" class="glass-panel glass-button bg-emerald-600 hover:bg-emerald-500 text-white font-game px-3 py-2 rounded-2xl flex items-center gap-1.5 border-emerald-300 text-xs">
+                        <i class="fa-solid fa-floppy-disk"></i> GUARDAR
+                    </button>
+
+                    <button id="btn-export-save" class="glass-panel glass-button bg-blue-600 hover:bg-blue-500 text-white font-game px-2.5 py-2 rounded-2xl flex items-center gap-1 text-xs">
+                        <i class="fa-solid fa-file-export"></i> Exportar
+                    </button>
+
+                    <button id="btn-import-save" class="glass-panel glass-button bg-teal-600 hover:bg-teal-500 text-white font-game px-2.5 py-2 rounded-2xl flex items-center gap-1 text-xs">
+                        <i class="fa-solid fa-file-import"></i> Importar
+                    </button>
+                    <input type="file" id="import-file-input" class="hidden" accept=".json">
+
+                    <button id="btn-open-odds" class="glass-panel glass-button bg-slate-800 hover:bg-slate-700 text-slate-300 font-game px-2.5 py-2 rounded-2xl flex items-center gap-1 text-xs">
+                        <i class="fa-solid fa-dice"></i> Probabilidades
+                    </button>
+
+                    <button id="btn-teleport-base" class="glass-panel glass-button bg-slate-800 hover:bg-slate-700 text-slate-300 font-game px-2.5 py-2 rounded-2xl flex items-center gap-1 text-xs">
+                        <i class="fa-solid fa-house"></i> Ir a Base
+                    </button>
+                </div>
+
+                <!-- Touch / Action Controls -->
+                <div id="mobile-controls" class="flex gap-1.5 pointer-events-auto items-end">
+                    <!-- Directional D-Pad -->
+                    <div class="flex gap-1 bg-slate-900/90 p-1 rounded-2xl border border-slate-700">
+                        <button id="btn-left" class="w-11 h-11 sm:w-13 sm:h-13 bg-slate-800 active:bg-cyan-500 rounded-xl text-lg font-bold flex items-center justify-center border border-slate-600">◄</button>
+                        <button id="btn-right" class="w-11 h-11 sm:w-13 sm:h-13 bg-slate-800 active:bg-cyan-500 rounded-xl text-lg font-bold flex items-center justify-center border border-slate-600">►</button>
+                    </div>
+
+                    <!-- Dodge Dash Button -->
+                    <button id="btn-dodge" class="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 active:bg-indigo-400 rounded-2xl flex flex-col items-center justify-center font-game text-white shadow-lg border-2 border-indigo-300 text-[9px] sm:text-[10px]">
+                        <i class="fa-solid fa-wind text-sm sm:text-base"></i>
+                        <span>ESQUIVAR</span>
+                    </button>
+
+                    <!-- Swing Bat Attack Button -->
+                    <button id="btn-bat-swing" class="w-12 h-12 sm:w-14 sm:h-14 bg-red-600 active:bg-red-400 rounded-2xl flex flex-col items-center justify-center font-game text-white shadow-lg border-2 border-red-300 text-[9px] sm:text-[10px]">
+                        <i class="fa-solid fa-baseball-bat-ball text-sm sm:text-base"></i>
+                        <span>BATE (F)</span>
+                    </button>
+
+                    <!-- Jump Button -->
+                    <button id="btn-jump" class="w-12 h-12 sm:w-14 sm:h-14 bg-cyan-600 active:bg-cyan-400 rounded-2xl flex flex-col items-center justify-center font-game text-white shadow-lg border-2 border-cyan-300 text-[9px] sm:text-[10px]">
+                        <i class="fa-solid fa-arrow-up text-sm sm:text-base"></i>
+                        <span>SALTAR</span>
+                    </button>
+
+                    <!-- Action / Steal Button -->
+                    <button id="btn-action" class="w-12 h-12 sm:w-14 sm:h-14 bg-amber-500 active:bg-amber-300 rounded-2xl flex flex-col items-center justify-center font-game text-amber-950 shadow-lg border-2 border-amber-300 text-[9px] sm:text-[10px]">
+                        <i class="fa-solid fa-hand text-sm sm:text-base"></i>
+                        <span>ACCIÓN (E)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Start Menu -->
+        <div id="main-menu" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6 text-center pointer-events-auto">
+            <div class="max-w-lg w-full glass-panel p-6 sm:p-8 rounded-3xl border-cyan-500/40 shadow-2xl animate-float">
+                <div class="text-6xl sm:text-7xl mb-2">🥚🔥</div>
+                <h1 class="font-game text-3xl sm:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-cyan-400 to-indigo-400 mb-2">
+                    ROBA UN HUEVO 2D
+                </h1>
+                <p class="text-slate-300 text-xs sm:text-sm mb-6">
+                    ¡Carga huevos con tus manos, entrena velocidad, resiste la noche y derrota NPCs con potentes bates!
+                </p>
+
+                <!-- MAIN PLAY NOW BUTTON -->
+                <button id="btn-play" class="w-full glass-button bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-game text-2xl py-4 rounded-2xl border-2 border-emerald-300 shadow-xl mb-4 relative z-50">
+                    <i class="fa-solid fa-play mr-2"></i> ¡JUGAR AHORA!
+                </button>
+
+                <!-- Load Saved Game Button -->
+                <button id="btn-load-menu" class="w-full glass-button bg-indigo-600 hover:bg-indigo-500 text-white font-game text-base py-2.5 rounded-2xl border border-indigo-300 shadow-md mb-4">
+                    <i class="fa-solid fa-folder-open mr-2"></i> CARGAR PARTIDA GUARDADA
+                </button>
+
+                <!-- Controls Guide -->
+                <div class="bg-slate-900/90 p-3 rounded-2xl text-left text-xs text-slate-300 space-y-1.5 border border-slate-800">
+                    <div class="font-bold text-cyan-400 uppercase tracking-wider text-center mb-1">Controles del Juego:</div>
+                    <div class="flex justify-between"><span>Moverse:</span> <span class="text-white font-mono">A / D o Flechas</span></div>
+                    <div class="flex justify-between"><span>Saltar:</span> <span class="text-cyan-300 font-mono">Espacio / W / Flecha Arriba</span></div>
+                    <div class="flex justify-between"><span>Esquivar (Dash):</span> <span class="text-indigo-300 font-mono">Tecla Shift</span></div>
+                    <div class="flex justify-between"><span>Golpear con Bate:</span> <span class="text-red-400 font-mono">Tecla F / Botón Bate</span></div>
+                    <div class="flex justify-between"><span>Interactuar / Robar:</span> <span class="text-amber-300 font-mono">Tecla E / Botón Acción</span></div>
+                    <div class="flex justify-between"><span>Abrir Inventario:</span> <span class="text-purple-300 font-mono">Tecla I / Botón Inventario</span></div>
+                </div>
+
+                <div class="mt-4 flex justify-center gap-4 text-xs text-slate-500">
+                    <button id="btn-reset-data" class="hover:text-red-400 underline">Borrar Datos Locales</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FULL INVENTORY MODAL -->
+        <div id="inventory-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-40 p-4">
+            <div class="glass-panel w-full max-w-3xl max-h-[85vh] rounded-3xl flex flex-col overflow-hidden border-purple-500/40">
+                <div class="p-4 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center">
+                    <h2 class="font-game text-xl sm:text-2xl text-purple-300 flex items-center gap-3">
+                        <i class="fa-solid fa-box-open"></i> MI INVENTARIO Y HUEVOS
+                    </h2>
+                    <button id="btn-close-inventory" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold">✕</button>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="flex border-b border-slate-800 bg-slate-900/50 px-4 gap-2 pt-3">
+                    <button id="tab-btn-eggs" class="font-game px-4 py-2 rounded-t-xl bg-purple-600 text-white border-t border-x border-purple-400 text-xs sm:text-sm">
+                        <i class="fa-solid fa-egg mr-1"></i> Huevos Cerrados (<span id="inv-egg-count">0</span>)
+                    </button>
+                    <button id="tab-btn-pets" class="font-game px-4 py-2 rounded-t-xl bg-slate-800 text-slate-400 hover:text-white text-xs sm:text-sm">
+                        <i class="fa-solid fa-paw mr-1"></i> Mascotas (<span id="inv-pet-count">0</span>)
+                    </button>
+                    <button id="tab-btn-bats" class="font-game px-4 py-2 rounded-t-xl bg-slate-800 text-slate-400 hover:text-white text-xs sm:text-sm">
+                        <i class="fa-solid fa-baseball-bat-ball mr-1"></i> Mis Bates (<span id="inv-bat-count">0</span>)
+                    </button>
+                </div>
+
+                <!-- Inventory Content Body -->
+                <div class="p-4 sm:p-6 overflow-y-auto flex-1">
+                    <!-- Eggs Tab Panel -->
+                    <div id="tab-panel-eggs" class="space-y-4">
+                        <div class="text-xs text-slate-300 bg-slate-900/80 p-3 rounded-2xl border border-amber-500/30 flex items-center gap-3">
+                            <span class="text-2xl">🥚</span>
+                            <div>
+                                <div class="font-bold text-amber-300">Incubadora de Base Seguro</div>
+                                <div class="text-slate-400">Los huevos rescatados permanecen **CERRADOS** e incubando hasta que termine su temporizador. ¡Haz clic en eclosionar cuando esté listo!</div>
+                            </div>
+                        </div>
+                        <div id="inv-eggs-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    </div>
+
+                    <!-- Pets Tab Panel -->
+                    <div id="tab-panel-pets" class="hidden space-y-4">
+                        <div class="text-xs text-slate-400 flex justify-between items-center bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                            <span>Mascotas activas en Base: <strong id="inv-base-slots-text" class="text-purple-300">0/3</strong></span>
+                            <span>Capacidad Guardado: <strong class="text-emerald-400">ILIMITADA</strong></span>
+                        </div>
+                        <div id="inv-pets-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    </div>
+
+                    <!-- Bats Tab Panel -->
+                    <div id="tab-panel-bats" class="hidden space-y-4">
+                        <div class="text-xs text-slate-400 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
+                            Equipa tu bate preferido para mandar a volar a los NPCs enemigos:
+                        </div>
+                        <div id="inv-bats-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BAT SHOP MODAL -->
+        <div id="bat-shop-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-40 p-4">
+            <div class="glass-panel w-full max-w-2xl max-h-[85vh] rounded-3xl flex flex-col overflow-hidden border-red-500/40">
+                <div class="p-4 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center">
+                    <h2 class="font-game text-xl sm:text-2xl text-red-400 flex items-center gap-3">
+                        <i class="fa-solid fa-baseball-bat-ball"></i> TIENDA DE BATES Y COMBATE
+                    </h2>
+                    <button id="btn-close-bat-shop" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold">✕</button>
+                </div>
+                <div class="p-4 sm:p-6 overflow-y-auto space-y-4">
+                    <div class="text-xs text-slate-300 bg-slate-900/70 p-3 rounded-2xl border border-red-500/30">
+                        ¡Compra bates más poderosos para aumentar tu fuerza de golpe y mandar a los NPCs volando por los aires!
+                    </div>
+                    <div id="bat-shop-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Modal (Upgrades) -->
+        <div id="shop-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-40 p-4">
+            <div class="glass-panel w-full max-w-2xl max-h-[85vh] rounded-3xl flex flex-col overflow-hidden border-amber-500/40">
+                <div class="p-4 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center">
+                    <h2 class="font-game text-xl sm:text-2xl text-amber-400 flex items-center gap-3">
+                        <i class="fa-solid fa-cart-shopping"></i> TIENDA DE MEJORAS DE BASE
+                    </h2>
+                    <button id="btn-close-shop" class="w-9 h-9 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold">✕</button>
+                </div>
+                <div class="p-4 sm:p-6 overflow-y-auto space-y-5">
+                    <!-- Section 1: Treadmills -->
+                    <div>
+                        <h3 class="font-game text-base text-cyan-300 mb-2">Potencia de Caminadoras</h3>
+                        <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-white text-sm">Caminadora Turbo</div>
+                                <div id="treadmill-level-text" class="text-xs text-cyan-400">Multiplicador: Nivel 1 (+1⚡/s)</div>
+                            </div>
+                            <button id="btn-buy-treadmill" class="glass-button bg-cyan-600 hover:bg-cyan-500 text-white font-game px-4 py-2 rounded-xl text-xs sm:text-sm">
+                                Mejorar: <span id="treadmill-cost">150 💰</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Base Pet Slots -->
+                    <div>
+                        <h3 class="font-game text-base text-indigo-300 mb-2">Espacios de Mascotas en Base</h3>
+                        <div class="glass-panel p-4 rounded-2xl flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-white text-sm">Expandir Hábitat</div>
+                                <div id="slots-level-text" class="text-xs text-indigo-400">Capacidad: 3 Espacios</div>
+                            </div>
+                            <button id="btn-buy-slot" class="glass-button bg-indigo-600 hover:bg-indigo-500 text-white font-game px-4 py-2 rounded-xl text-xs sm:text-sm">
+                                Expandir (+2): <span id="slot-cost">500 💰</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Trails -->
+                    <div>
+                        <h3 class="font-game text-base text-pink-300 mb-2">Rastros de Velocidad (Trails)</h3>
+                        <div id="trails-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Odds / Probability Info Modal -->
+        <div id="odds-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md flex items-center justify-center z-40 p-4">
+            <div class="glass-panel w-full max-w-md rounded-3xl p-5 border-purple-500/40">
+                <div class="flex justify-between items-center mb-3 border-b border-slate-800 pb-2">
+                    <h3 class="font-game text-xl text-purple-300 flex items-center gap-2">
+                        <i class="fa-solid fa-dice"></i> Probabilidades de Huevos
+                    </h3>
+                    <button id="btn-close-odds" class="text-slate-400 hover:text-white text-lg">✕</button>
+                </div>
+                <div class="space-y-2 text-xs text-slate-300 mb-4">
+                    <p class="text-slate-400 mb-2">Cada 5 minutos el mapa se reinicia con huevos y sus tiempos de incubación:</p>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-slate-300 font-bold">Común (15s):</span> <span class="text-slate-200">50.0%</span></div>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-blue-400 font-bold">Raro (30s):</span> <span class="text-blue-300">30.0%</span></div>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-purple-400 font-bold">Épico (60s):</span> <span class="text-purple-300">13.0%</span></div>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-amber-400 font-bold">Legendario (120s):</span> <span class="text-amber-300">5.0%</span></div>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-pink-400 font-bold">Divino (300s):</span> <span class="text-pink-300">1.5%</span></div>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-cyan-400 font-bold">Secreto (600s):</span> <span class="text-cyan-300">0.4%</span></div>
+                    <div class="flex justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800"><span class="text-rose-400 font-bold">Eterno (1200s):</span> <span class="text-rose-300">0.1%</span></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MAIN GAME ENGINE SCRIPT -->
+    <script>
+        // --- GAME DATA STRUCTURES & CONFIGS ---
+        const ZONES = [
+            { id: 'base', name: 'Base Principal', bossName: null, reqSpeed: 0, xStart: 0, xEnd: 800, color: '#1e293b' },
+            { id: 'bosque', name: 'Bosque', bossName: 'Guardián del Bosque', reqSpeed: 0, xStart: 800, xEnd: 2200, color: '#15803d' },
+            { id: 'lago', name: 'Lago', bossName: 'Monstruo del Lago', reqSpeed: 900, xStart: 2200, xEnd: 3800, color: '#0369a1' },
+            { id: 'desierto', name: 'Desierto', bossName: 'Faraón del Desierto', reqSpeed: 10000, xStart: 3800, xEnd: 5500, color: '#b45309' },
+            { id: 'jungla', name: 'Jungla', bossName: 'Gorila Titán', reqSpeed: 40000, xStart: 5500, xEnd: 7500, color: '#047857' },
+            { id: 'nieve', name: 'Nieve', bossName: 'Yeti Ancestral', reqSpeed: 170000, xStart: 7500, xEnd: 9800, color: '#0ea5e9' },
+            { id: 'volcan', name: 'Volcán', bossName: 'Dragón de Lava', reqSpeed: 700000, xStart: 9800, xEnd: 12200, color: '#b91c1c' },
+            { id: 'oceano', name: 'Océano Abismal', bossName: 'Leviatán del Abismo', reqSpeed: 2500000, xStart: 12200, xEnd: 14800, color: '#1e1b4b' },
+            { id: 'prehistorico', name: 'Prehistórico', bossName: 'T-Rex Alfa', reqSpeed: 18000000, xStart: 14800, xEnd: 17500, color: '#78350f' },
+            { id: 'cosmico', name: 'Cósmico', bossName: 'Entidad Cósmica', reqSpeed: 700000000, xStart: 17500, xEnd: 20500, color: '#581c87' },
+            { id: 'cerezos', name: 'Cerezos', bossName: 'Samurái Ronin', reqSpeed: 2500000000, xStart: 20500, xEnd: 24000, color: '#be185d' },
+            { id: 'titan', name: 'Templo Titán', bossName: 'Coloso de Piedra', reqSpeed: 7000000000, xStart: 24000, xEnd: 28000, color: '#854d0e' },
+            { id: 'angeles', name: 'Ángeles y Demonios', bossName: 'Archidemonio Caído', reqSpeed: 20000000000, xStart: 28000, xEnd: 33000, color: '#431407' }
+        ];
+
+        // REALISTIC INCUBATION TIMES (Feature 18)
+        const EGG_TYPES = [
+            { id: 'comun', name: 'Huevo Común', rarity: 'Común', color: '#94a3b8', prob: 0.50, hatchTime: 15, cost: 50 },
+            { id: 'raro', name: 'Huevo Raro', rarity: 'Raro', color: '#60a5fa', prob: 0.30, hatchTime: 30, cost: 250 },
+            { id: 'epico', name: 'Huevo Épico', rarity: 'Épico', color: '#c084fc', prob: 0.13, hatchTime: 60, cost: 1200 },
+            { id: 'legendario', name: 'Huevo Legendario', rarity: 'Legendario', color: '#fbbf24', prob: 0.05, hatchTime: 120, cost: 5000 },
+            { id: 'divino', name: 'Huevo Divino', rarity: 'Divino', color: '#f472b6', prob: 0.015, hatchTime: 300, cost: 25000 },
+            { id: 'secreto', name: 'Huevo Secreto', rarity: 'Secreto', color: '#22d3ee', prob: 0.004, hatchTime: 600, cost: 100000 },
+            { id: 'eterno', name: 'Huevo Eterno', rarity: 'Eterno', color: '#fb7185', prob: 0.001, hatchTime: 1200, cost: 500000 }
+        ];
+
+        // EXPANDED BATS CATALOG (Feature 20)
+        const BATS_CATALOG = {
+            'bate_madera': { name: 'Bate de Madera', damage: 15, knockback: 8, color: '#854d0e', cost: 0, glow: null },
+            'bate_hierro': { name: 'Bate de Hierro', damage: 40, knockback: 16, color: '#94a3b8', cost: 800, glow: '#cbd5e1' },
+            'bate_oro': { name: 'Bate de Oro', damage: 100, knockback: 26, color: '#eab308', cost: 5000, glow: '#fef08a' },
+            'bate_diamante': { name: 'Bate de Diamante', damage: 250, knockback: 40, color: '#06b6d4', cost: 35000, glow: '#67e8f9' },
+            'bate_legendario': { name: 'Bate Legendario', damage: 600, knockback: 60, color: '#a855f7', cost: 250000, glow: '#f472b6', rainbow: true }
+        };
+
+        const TRAILS = [
+            { id: 'none', name: 'Sin Rastro', mult: 1, color: '#ffffff', cost: 0 },
+            { id: 'fuego', name: 'Fuego Carmesí', mult: 1.5, color: '#ef4444', cost: 1000 },
+            { id: 'rayo', name: 'Rayo Eléctrico', mult: 2.2, color: '#06b6d4', cost: 8000 },
+            { id: 'arcoiris', name: 'Arcoíris Cósmico', mult: 4.0, color: '#ec4899', cost: 50000 }
+        ];
+
+        // --- GLOBAL GAME STATE ---
+        let gameState = {
+            coins: 100,
+            speed: 10,
+            baseIncome: 0,
+            treadmillLevel: 1,
+            baseSlotsMax: 3,
+            activeTrail: 'none',
+            equippedBat: 'bate_madera',
+            placedPets: [],
+            inventoryPets: [],
+            inventoryEggs: [], // [{ id, eggType, timer, maxTimer }]
+            ownedBats: ['bate_madera'],
+            ownedTrails: ['none'],
+            carriedEgg: null
+        };
+
+        // --- DAY / NIGHT CYCLE STATE (Feature 19) ---
+        let dayNightCycle = {
+            time: 0,           // Seconds in current cycle (0 to 180s)
+            duration: 180,     // 3 mins total cycle duration
+            phase: 'day',      // 'day', 'dusk', 'night', 'dawn'
+            nightRecalled: false
+        };
+
+        // --- AUDIO ENGINE ---
+        let audioCtx = null;
+        function initAudioContext() {
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) audioCtx = new AudioContextClass();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch(e) {}
+        }
+
+        function playTone(freq, type, duration, vol = 0.1) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+
+        function playSFX(type) {
+            initAudioContext();
+            if (type === 'jump') playTone(350, 'sine', 0.15, 0.15);
+            else if (type === 'dodge') playTone(600, 'triangle', 0.12, 0.1);
+            else if (type === 'swing') playTone(180, 'sawtooth', 0.1, 0.15);
+            else if (type === 'hit') playTone(110, 'square', 0.25, 0.25);
+            else if (type === 'superhit') {
+                playTone(150, 'sawtooth', 0.3, 0.3);
+                setTimeout(() => playTone(300, 'square', 0.2, 0.2), 80);
+            }
+            else if (type === 'coin') playTone(880, 'sine', 0.1, 0.1);
+            else if (type === 'steal') playTone(220, 'sawtooth', 0.4, 0.25);
+            else if (type === 'fanfare') {
+                playTone(523, 'triangle', 0.2, 0.2);
+                setTimeout(() => playTone(659, 'triangle', 0.2, 0.2), 100);
+                setTimeout(() => playTone(783, 'triangle', 0.3, 0.2), 200);
+            }
+        }
+
+        // --- CANVAS & GAME LOOP STATE ---
+        let canvas, ctx;
+        let gameStarted = false;
+        let lastTime = performance.now();
+        let resetTimerSeconds = 300; // 5 mins
+        let animFrameCounter = 0;
+
+        // Visual Sparkles Particle Array
+        let hitParticles = [];
+
+        // Player physics
+        const player = {
+            x: 150,
+            y: 400,
+            vx: 0,
+            vy: 0,
+            width: 36,
+            height: 56,
+            isGrounded: true,
+            facing: 1, // 1: right, -1: left
+            isDodging: false,
+            dodgeTimer: 0,
+            dodgeCooldownTimer: 0,
+            isAttacking: false,
+            attackTimer: 0
+        };
+
+        const keys = {};
+        let worldEggs = [];
+        let normalNPCs = [];
+        let zoneBosses = [];
+
+        // Stars array for night sky
+        const nightStars = Array.from({ length: 60 }, () => ({
+            x: Math.random() * 3000,
+            y: Math.random() * 250,
+            size: Math.random() * 2 + 1,
+            twinkle: Math.random() * Math.PI
+        }));
+
+        // --- INITIALIZATION ---
+        window.addEventListener('load', () => {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            setupEventListeners();
+            loadGameData(false);
+            spawnWorldEntities();
+
+            requestAnimationFrame(gameLoop);
+        });
+
+        function resizeCanvas() {
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        }
+
+        function toggleModal(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                if (el.classList.contains('hidden')) {
+                    if (id === 'inventory-modal') openInventoryModal();
+                    else openModal(id);
+                } else {
+                    closeModal(id);
+                }
+            }
+        }
+
+        function toggleInventoryModal() {
+            toggleModal('inventory-modal');
+        }
+
+        // --- EVENT LISTENERS ---
+        function setupEventListeners() {
+            document.getElementById('btn-play')?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                initAudioContext();
+
+                document.getElementById('main-menu')?.classList.add('hidden');
+                document.getElementById('hud-layer')?.classList.remove('hidden');
+                gameStarted = true;
+                showToast("¡Que comience la aventura! Roba huevos, entrena y defiéndete con tu bate.", "🎮");
+            });
+
+            document.getElementById('btn-load-menu')?.addEventListener('click', () => loadGameData(true));
+            document.getElementById('btn-reset-data')?.addEventListener('click', () => {
+                showCustomConfirm("¿Estás seguro de borrar todos los datos guardados?", () => {
+                    localStorage.removeItem('roba_un_huevo_2d_save');
+                    location.reload();
+                });
+            });
+
+            // Keyboard
+            window.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyI' && gameStarted) toggleInventoryModal();
+                if (e.code === 'KeyF' && gameStarted) performBatAttack();
+                if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') performDodge();
+                if (e.code === 'KeyE' && gameStarted) handleInteractAction();
+            });
+
+            window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+            // Mobile Controls
+            setupMobileButton('btn-left', () => keys['ArrowLeft'] = true, () => keys['ArrowLeft'] = false);
+            setupMobileButton('btn-right', () => keys['ArrowRight'] = true, () => keys['ArrowRight'] = false);
+
+            document.getElementById('btn-jump')?.addEventListener('click', () => doJump());
+            document.getElementById('btn-dodge')?.addEventListener('click', () => performDodge());
+            document.getElementById('btn-bat-swing')?.addEventListener('click', () => performBatAttack());
+            document.getElementById('btn-action')?.addEventListener('click', () => handleInteractAction());
+
+            // Modal Handlers
+            document.getElementById('btn-open-inventory')?.addEventListener('click', () => toggleInventoryModal());
+            document.getElementById('btn-close-inventory')?.addEventListener('click', () => closeModal('inventory-modal'));
+            document.getElementById('btn-open-shop')?.addEventListener('click', () => openShopModal());
+            document.getElementById('btn-close-shop')?.addEventListener('click', () => closeModal('shop-modal'));
+            document.getElementById('btn-open-bat-shop')?.addEventListener('click', () => openBatShopModal());
+            document.getElementById('btn-close-bat-shop')?.addEventListener('click', () => closeModal('bat-shop-modal'));
+            document.getElementById('btn-open-odds')?.addEventListener('click', () => openModal('odds-modal'));
+            document.getElementById('btn-close-odds')?.addEventListener('click', () => closeModal('odds-modal'));
+            document.getElementById('btn-teleport-base')?.addEventListener('click', () => {
+                player.x = 150;
+                player.y = 400;
+                showToast("Teletransportado a la Base Principal", "🏠");
+            });
+
+            // Save / Load
+            document.getElementById('btn-save-manual')?.addEventListener('click', () => saveGameData(true));
+            document.getElementById('btn-export-save')?.addEventListener('click', exportGameSave);
+            
+            const fileInput = document.getElementById('import-file-input');
+            document.getElementById('btn-import-save')?.addEventListener('click', () => fileInput?.click());
+            fileInput?.addEventListener('change', importGameSave);
+
+            // Upgrades
+            document.getElementById('btn-buy-treadmill')?.addEventListener('click', buyTreadmillUpgrade);
+            document.getElementById('btn-buy-slot')?.addEventListener('click', buyBaseSlotUpgrade);
+
+            // Inventory Tabs
+            document.getElementById('tab-btn-eggs')?.addEventListener('click', () => switchInvTab('eggs'));
+            document.getElementById('tab-btn-pets')?.addEventListener('click', () => switchInvTab('pets'));
+            document.getElementById('tab-btn-bats')?.addEventListener('click', () => switchInvTab('bats'));
+        }
+
+        function setupMobileButton(id, onPress, onRelease) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); onPress(); });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); onRelease(); });
+            btn.addEventListener('mousedown', onPress);
+            btn.addEventListener('mouseup', onRelease);
+        }
+
+        // --- COMBAT & MOVEMENT ENGINE ---
+        function doJump() {
+            if (player.isGrounded) {
+                player.vy = -13;
+                player.isGrounded = false;
+                playSFX('jump');
+            }
+        }
+
+        function performDodge() {
+            if (!gameStarted) return;
+            if (player.dodgeCooldownTimer <= 0 && !player.isDodging) {
+                player.isDodging = true;
+                player.dodgeTimer = 0.4;
+                player.dodgeCooldownTimer = 2.0;
+                player.vx = player.facing * 14;
+                playSFX('dodge');
+            }
+        }
+
+        // COMBAT SYSTEM WITH KNOCKBACK & FLIGHT PHYSICS (Feature 20)
+        function performBatAttack() {
+            if (!gameStarted || player.isAttacking) return;
+            player.isAttacking = true;
+            player.attackTimer = 0.25;
+
+            const bat = BATS_CATALOG[gameState.equippedBat] || BATS_CATALOG['bate_madera'];
+            playSFX(bat.knockback >= 30 ? 'superhit' : 'swing');
+
+            // Strictly checked physical attack reach box (approx 65px reach)
+            const attackBox = {
+                x: player.facing === 1 ? player.x + player.width : player.x - 65,
+                y: player.y - 10,
+                width: 65,
+                height: player.height + 20
+            };
+
+            // Hit Normal NPCs
+            let hitCount = 0;
+            normalNPCs.forEach(npc => {
+                if (checkOverlap(attackBox, npc)) {
+                    hitCount++;
+                    npc.stunTimer = 2.5;
+                    
+                    // High-tier bats launch NPCs flying through the air!
+                    npc.vx = player.facing * bat.knockback * 0.7;
+                    if (bat.knockback >= 20) {
+                        npc.vy = -Math.min(bat.knockback * 0.45, 20);
+                        npc.isFlying = true;
+                    }
+
+                    gameState.coins += Math.floor(bat.damage * 0.5);
+                    playSFX('hit');
+
+                    // Spawn visual impact particles
+                    spawnHitParticle(npc.x + 18, npc.y + 10, `💥 -${bat.damage}`, bat.color);
+                }
+            });
+
+            // Hit Zone Bosses with Balanced Knockback Logic
+            zoneBosses.forEach(boss => {
+                if (checkOverlap(attackBox, boss)) {
+                    hitCount++;
+                    // Reduced knockback for bosses to preserve fight balance
+                    boss.x += player.facing * (bat.knockback * 0.15);
+                    gameState.coins += Math.floor(bat.damage * 0.8);
+                    playSFX('hit');
+
+                    spawnHitParticle(boss.x, boss.y, `💥 -${bat.damage}`, '#f59e0b');
+                    showToast(`¡Golpeaste a ${boss.name}! (-${bat.damage} HP)`, "🏏");
+                }
+            });
+
+            if (hitCount > 0) {
+                updateHUDDisplays();
+            }
+        }
+
+        function handleInteractAction() {
+            // Interactive Stand Checks in Base
+            if (player.x >= 210 && player.x <= 310) { buyTreadmillUpgrade(); return; }
+            if (player.x >= 480 && player.x <= 570) { openBatShopModal(); return; }
+            if (player.x >= 600 && player.x <= 720) { buyBaseSlotUpgrade(); return; }
+
+            // Can only carry 1 egg at a time
+            if (gameState.carriedEgg) {
+                showToast("¡Ya llevas un huevo en tus manos! Llévalo a tu Base para ponerlo a incubar.", "⚠️");
+                return;
+            }
+
+            // Steal Boss Egg
+            let bossInteracted = false;
+            zoneBosses.forEach(boss => {
+                const dist = Math.abs(player.x - boss.nestX);
+                if (dist < 90 && !gameState.carriedEgg) {
+                    gameState.carriedEgg = {
+                        eggType: boss.eggType,
+                        isBossEgg: true,
+                        bossRef: boss
+                    };
+                    boss.isChasing = true;
+                    bossInteracted = true;
+                    playSFX('steal');
+                    showToast(`🚨 ¡ROBASTE UN ${boss.eggType.name.toUpperCase()} DE ${boss.name.toUpperCase()}! ¡HUYE A LA BASE!`, "🏃");
+                }
+            });
+
+            if (bossInteracted) return;
+
+            // Pick Floor Egg
+            for (let i = worldEggs.length - 1; i >= 0; i--) {
+                const egg = worldEggs[i];
+                if (checkOverlap(player, egg)) {
+                    gameState.carriedEgg = {
+                        eggType: egg.eggType,
+                        isBossEgg: false,
+                        bossRef: null
+                    };
+                    worldEggs.splice(i, 1);
+                    playSFX('steal');
+                    showToast(`🥚 Llevas en tus manos: ${egg.eggType.name}. ¡Corre a la Base!`, "🏃");
+                    break;
+                }
+            }
+        }
+
+        // --- WORLD ENTITY SPAWNER ---
+        function spawnWorldEntities() {
+            worldEggs = [];
+            normalNPCs = [];
+            zoneBosses = [];
+
+            ZONES.forEach((zone, idx) => {
+                if (zone.id === 'base') return;
+
+                // 3 Floor Eggs per zone
+                for (let i = 0; i < 3; i++) {
+                    const eggType = getRandomEggByProb();
+                    const rx = zone.xStart + 150 + Math.random() * (zone.xEnd - zone.xStart - 300);
+                    worldEggs.push({
+                        x: rx,
+                        y: 426,
+                        width: 24,
+                        height: 30,
+                        eggType: eggType
+                    });
+                }
+
+                // Normal NPC
+                normalNPCs.push({
+                    x: zone.xStart + 400,
+                    y: 400,
+                    width: 36,
+                    height: 56,
+                    vx: 2,
+                    vy: 0,
+                    rotation: 0,
+                    isFlying: false,
+                    patrolLeft: zone.xStart + 200,
+                    patrolRight: zone.xEnd - 200,
+                    telegraphTimer: 0,
+                    attackCooldown: 0,
+                    stunTimer: 0,
+                    zoneName: zone.name
+                });
+
+                // Zone Boss
+                const nestX = zone.xEnd - 180;
+                zoneBosses.push({
+                    zoneId: zone.id,
+                    name: zone.bossName || 'Jefe de Zona',
+                    nestX: nestX,
+                    x: nestX,
+                    y: 380,
+                    width: 50,
+                    height: 75,
+                    reqSpeed: zone.reqSpeed,
+                    isChasing: false,
+                    eggType: EGG_TYPES[Math.min(idx - 1, EGG_TYPES.length - 1)],
+                    speed: 4.5 + idx * 0.75
+                });
+            });
+        }
+
+        function getRandomEggByProb() {
+            const r = Math.random();
+            let cum = 0;
+            for (let egg of EGG_TYPES) {
+                cum += egg.prob;
+                if (r <= cum) return egg;
+            }
+            return EGG_TYPES[0];
+        }
+
+        // --- MAIN GAME LOOP ---
+        function gameLoop(time) {
+            const dt = Math.min((time - lastTime) / 1000, 0.1);
+            lastTime = time;
+            animFrameCounter++;
+
+            if (gameStarted) {
+                updateGame(dt);
+            }
+            renderGame();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateGame(dt) {
+            if (player.dodgeTimer > 0) player.dodgeTimer -= dt;
+            if (player.dodgeTimer <= 0) player.isDodging = false;
+            if (player.dodgeCooldownTimer > 0) player.dodgeCooldownTimer -= dt;
+
+            if (player.attackTimer > 0) player.attackTimer -= dt;
+            if (player.attackTimer <= 0) player.isAttacking = false;
+
+            // Map Reset Timer
+            resetTimerSeconds -= dt;
+            if (resetTimerSeconds <= 0) {
+                resetTimerSeconds = 300;
+                spawnWorldEntities();
+                showToast("¡El mapa se ha reiniciado con nuevos huevos!", "🔄");
+            }
+
+            // DAY / NIGHT CYCLE UPDATE (Feature 19)
+            dayNightCycle.time = (dayNightCycle.time + dt) % dayNightCycle.duration;
+            const cycleT = dayNightCycle.time;
+
+            // Phase definitions: 0 - 110s (Day), 110s - 125s (Dusk), 125s - 165s (Night), 165s - 180s (Dawn)
+            if (cycleT >= 125 && cycleT < 165) {
+                if (dayNightCycle.phase !== 'night') {
+                    dayNightCycle.phase = 'night';
+                    showToast("🌙 ¡HA LLEGADO LA NOCHE! Regresando a la base segura...", "🌙");
+
+                    // Teleport Player Safely to Base
+                    player.x = 150;
+                    player.y = 400;
+
+                    // PRESERVE CARRIED EGG ON NIGHT RECALL!
+                    if (gameState.carriedEgg) {
+                        const eggType = gameState.carriedEgg.eggType;
+                        gameState.inventoryEggs.push({
+                            id: 'egg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            eggType: eggType,
+                            timer: eggType.hatchTime,
+                            maxTimer: eggType.hatchTime
+                        });
+                        if (gameState.carriedEgg.bossRef) gameState.carriedEgg.bossRef.isChasing = false;
+                        gameState.carriedEgg = null;
+                        showToast(`🏆 ¡Llegaste a salvo a la base! Guardaste: ${eggType.name} (Cerrado).`, "🐣");
+                    }
+                }
+            } else if (cycleT >= 165 || cycleT < 110) {
+                if (dayNightCycle.phase === 'night') {
+                    dayNightCycle.phase = 'day';
+                    showToast("☀️ ¡AMANECE UN NUEVO DÍA! Es hora de salir a explorar.", "☀️");
+                }
+            }
+
+            // INCUBATION TIMERS UPDATE FOR CLOSED EGGS (Feature 18)
+            gameState.inventoryEggs.forEach(egg => {
+                if (egg.timer > 0) {
+                    egg.timer -= dt;
+                    if (egg.timer < 0) egg.timer = 0;
+                }
+            });
+
+            // Player Horizontal Controls & Speed Physics
+            let moveDir = 0;
+            if (keys['ArrowLeft'] || keys['KeyA']) moveDir = -1;
+            if (keys['ArrowRight'] || keys['KeyD']) moveDir = 1;
+            if (keys['ArrowUp'] || keys['KeyW'] || keys['Space']) doJump();
+
+            if (moveDir !== 0) {
+                player.facing = moveDir;
+                const speedMult = 1 + Math.log10(Math.max(1, gameState.speed)) * 0.25;
+                player.vx = moveDir * 5 * speedMult;
+            } else {
+                player.vx *= 0.8;
+            }
+
+            // Player Gravity
+            player.vy += 28 * dt;
+            player.x += player.vx;
+            player.y += player.vy;
+
+            if (player.y >= 400) {
+                player.y = 400;
+                player.vy = 0;
+                player.isGrounded = true;
+            }
+            if (player.x < 50) player.x = 50;
+
+            // Treadmill Training (Base x: 250 - 450)
+            if (player.x >= 250 && player.x <= 450 && player.isGrounded) {
+                const activeTrail = TRAILS.find(t => t.id === gameState.activeTrail) || TRAILS[0];
+                gameState.speed += gameState.treadmillLevel * activeTrail.mult * 20 * dt;
+            }
+
+            // Passive Income
+            let totalIncome = 0;
+            gameState.placedPets.forEach(pet => totalIncome += (pet.coinsPerSec || 5));
+            gameState.baseIncome = totalIncome;
+            gameState.coins += totalIncome * dt;
+
+            // DEPOSIT CARRIED EGG AS CLOSED EGG IN BASE SAFE ZONE (x < 800)
+            if (gameState.carriedEgg && player.x < 800) {
+                const eggType = gameState.carriedEgg.eggType;
+                gameState.inventoryEggs.push({
+                    id: 'egg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                    eggType: eggType,
+                    timer: eggType.hatchTime,
+                    maxTimer: eggType.hatchTime
+                });
+
+                if (gameState.carriedEgg.bossRef) {
+                    gameState.carriedEgg.bossRef.isChasing = false;
+                }
+
+                playSFX('fanfare');
+                showToast(`🏆 ¡BASE SEGURA! Guardaste: ${eggType.name} (CERRADO - Incubation: ${eggType.hatchTime}s)`, "🎉");
+                gameState.carriedEgg = null;
+                renderInventoryGrid();
+            }
+
+            // Normal NPCs Patrol & Flight Physics Update
+            normalNPCs.forEach(npc => {
+                // If NPC is airborne / launched by strong bat
+                if (npc.isFlying || npc.y < 400) {
+                    npc.vy += 25 * dt;
+                    npc.y += npc.vy;
+                    npc.x += npc.vx;
+                    npc.rotation += (npc.vx > 0 ? 0.2 : -0.2);
+
+                    if (npc.y >= 400) {
+                        npc.y = 400;
+                        npc.vy = 0;
+                        npc.vx = 0;
+                        npc.isFlying = false;
+                        npc.rotation = 0;
+                    }
+                    return;
+                }
+
+                if (npc.stunTimer > 0) {
+                    npc.stunTimer -= dt;
+                    npc.vx = 0;
+                    return;
+                }
+
+                npc.x += npc.vx;
+                if (npc.x < npc.patrolLeft || npc.x > npc.patrolRight) {
+                    npc.vx *= -1;
+                }
+
+                // Attack telegraphing
+                const distToPlayer = Math.abs(player.x - npc.x);
+                if (distToPlayer < 110 && Math.abs(player.y - npc.y) < 40) {
+                    if (npc.telegraphTimer <= 0 && npc.attackCooldown <= 0) {
+                        npc.telegraphTimer = 0.5;
+                    }
+                }
+
+                if (npc.attackCooldown > 0) npc.attackCooldown -= dt;
+
+                if (npc.telegraphTimer > 0) {
+                    npc.telegraphTimer -= dt;
+                    if (npc.telegraphTimer <= 0) {
+                        npc.attackCooldown = 1.8;
+                        const attackHitbox = { x: npc.x - 60, y: npc.y, width: 120, height: npc.height };
+
+                        if (checkOverlap(player, attackHitbox)) {
+                            if (!player.isDodging && player.isGrounded) {
+                                playSFX('hit');
+                                player.vx = (player.x > npc.x ? 1 : -1) * 8;
+                                gameState.coins = Math.max(0, gameState.coins - 15);
+
+                                // LOST CARRIED EGG ON FAILED STEAL!
+                                if (gameState.carriedEgg) {
+                                    showToast("💥 ¡Te golpearon y se te CAYÓ el huevo!", "🥚");
+                                    gameState.carriedEgg = null;
+                                } else {
+                                    showToast("¡Te golpeó un NPC! (-15 💰)", "💥");
+                                }
+                            } else {
+                                showToast("¡Esquivaste el golpe!", "💨");
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Boss Pursuits
+            zoneBosses.forEach(boss => {
+                if (boss.isChasing) {
+                    const dir = player.x > boss.x ? 1 : -1;
+                    boss.x += dir * boss.speed;
+
+                    if (checkOverlap(player, boss)) {
+                        playSFX('hit');
+                        showToast(`☠️ ¡${boss.name} te atrapó! Perdiste el huevo.`, "💥");
+                        gameState.carriedEgg = null; // Lost during theft failure!
+                        boss.isChasing = false;
+                        boss.x = boss.nestX;
+                        player.x = 150;
+                    }
+                } else {
+                    if (Math.abs(boss.x - boss.nestX) > 5) {
+                        boss.x += (boss.nestX > boss.x ? 1 : -1) * 3;
+                    }
+                }
+            });
+
+            // Update Hit Particles
+            for (let i = hitParticles.length - 1; i >= 0; i--) {
+                const p = hitParticles[i];
+                p.y += p.vy;
+                p.alpha -= dt * 1.2;
+                if (p.alpha <= 0) hitParticles.splice(i, 1);
+            }
+
+            updateHUDDisplays();
+        }
+
+        function updateHUDDisplays() {
+            document.getElementById('hud-coins').innerText = Math.floor(gameState.coins).toLocaleString();
+            document.getElementById('hud-speed').innerText = Math.floor(gameState.speed).toLocaleString();
+            document.getElementById('hud-income').innerText = `+${Math.floor(gameState.baseIncome)}/s`;
+
+            const curZone = ZONES.find(z => player.x >= z.xStart && player.x < z.xEnd) || ZONES[0];
+            document.getElementById('hud-zone').innerText = `Zona: ${curZone.name}`;
+
+            // HUD Day / Night Display
+            const cycleT = dayNightCycle.time;
+            const remaining = Math.max(0, Math.floor(dayNightCycle.duration - cycleT));
+            const mins = Math.floor(remaining / 60);
+            const secs = Math.floor(remaining % 60);
+            const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            const iconEl = document.getElementById('hud-daynight-icon');
+            const textEl = document.getElementById('hud-daynight-text');
+            if (iconEl && textEl) {
+                if (dayNightCycle.phase === 'night') {
+                    iconEl.innerText = '🌙';
+                    textEl.innerText = `Noche (${timeStr})`;
+                    textEl.className = "text-xs sm:text-sm font-game text-indigo-300";
+                } else {
+                    iconEl.innerText = '☀️';
+                    textEl.innerText = `Día (${timeStr})`;
+                    textEl.className = "text-xs sm:text-sm font-game text-amber-300";
+                }
+            }
+
+            // Reset Timer
+            const rMins = Math.floor(resetTimerSeconds / 60);
+            const rSecs = Math.floor(resetTimerSeconds % 60);
+            document.getElementById('hud-reset-timer').innerText = `${rMins.toString().padStart(2, '0')}:${rSecs.toString().padStart(2, '0')}`;
+
+            // Carried Egg Banner
+            const eggStatus = document.getElementById('hud-egg-status');
+            const eggText = document.getElementById('hud-egg-text');
+            if (eggStatus && eggText) {
+                if (gameState.carriedEgg) {
+                    eggStatus.classList.remove('hidden');
+                    eggText.innerText = `CARGANDO HUEVO: ${gameState.carriedEgg.eggType.name.toUpperCase()} (¡CORRE A BASE!)`;
+                } else {
+                    eggStatus.classList.add('hidden');
+                }
+            }
+
+            document.getElementById('pet-count-hud').innerText = `${gameState.placedPets.length}/${gameState.baseSlotsMax}`;
+            document.getElementById('inv-pet-count').innerText = gameState.placedPets.length + gameState.inventoryPets.length;
+            document.getElementById('inv-egg-count').innerText = gameState.inventoryEggs.length;
+            document.getElementById('inv-bat-count').innerText = gameState.ownedBats.length;
+        }
+
+        // --- PARTICLE SPARK SYSTEM ---
+        function spawnHitParticle(x, y, text, color) {
+            hitParticles.push({
+                x: x,
+                y: y,
+                text: text,
+                color: color || '#ffffff',
+                vy: -2,
+                alpha: 1.0
+            });
+        }
+
+        // --- RENDER ENGINE ---
+        function renderGame() {
+            if (!ctx) return;
+
+            const cameraX = player.x - canvas.width / 2;
+
+            // DRAW SKY GRADIENT (Feature 19)
+            drawDynamicSky();
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Draw Sun / Moon & Twinkling Stars in Sky
+            drawSkyBodies(cameraX);
+
+            // Render Zones Terrain
+            ZONES.forEach(zone => drawDetailedZoneGround(zone));
+
+            // Render Treadmill Equipment (x: 250 - 450)
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(250, 448, 200, 10);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = '12px "Fredoka One"';
+            ctx.fillText(`🏋️ CAMINADORA (Nivel ${gameState.treadmillLevel})`, 270, 420);
+
+            // Carteles in Base
+            drawCartel(230, 370, 'MEJORAR', `⚡ ${gameState.treadmillLevel * 150} 💰`, '#0284c7');
+            drawCartel(520, 370, 'TIENDA BATES', '🏏 COMPRAR', '#dc2626');
+            drawCartel(650, 370, 'AMPLIAR BASE', `🏠 ${gameState.baseSlotsMax * 250} 💰`, '#4f46e5');
+
+            // Render Base Pets
+            gameState.placedPets.forEach((pet, i) => {
+                const px = 100 + i * 45;
+                ctx.fillStyle = pet.color || '#a855f7';
+                ctx.beginPath();
+                ctx.arc(px, 440, 14, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px "Fredoka One"';
+                ctx.fillText('🐾', px - 6, 444);
+            });
+
+            // Render World Floor Eggs
+            worldEggs.forEach(egg => {
+                ctx.fillStyle = egg.eggType.color;
+                ctx.beginPath();
+                ctx.ellipse(egg.x + 12, egg.y + 15, 12, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // Render Boss Nests & Bosses
+            zoneBosses.forEach(boss => {
+                ctx.fillStyle = '#78350f';
+                ctx.beginPath();
+                ctx.ellipse(boss.nestX, 450, 30, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                drawBossSprite(boss);
+
+                if (Math.abs(player.x - boss.nestX) < 90 && !gameState.carriedEgg) {
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.font = 'bold 12px "Fredoka One"';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(' [ PULSA E / ROBAR ] ', boss.nestX, 335);
+                    ctx.textAlign = 'left';
+                }
+
+                ctx.font = 'bold 12px "Fredoka One"';
+                ctx.textAlign = 'center';
+                const nameText = `👑 ${boss.name}`;
+                const textWidth = ctx.measureText(nameText).width;
+
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                ctx.fillRect(boss.x - textWidth / 2 - 6, boss.y - 25, textWidth + 12, 18);
+                ctx.strokeStyle = '#eab308';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(boss.x - textWidth / 2 - 6, boss.y - 25, textWidth + 12, 18);
+
+                ctx.fillStyle = '#facc15';
+                ctx.fillText(nameText, boss.x, boss.y - 12);
+                ctx.textAlign = 'left';
+            });
+
+            // Render Normal Patrol NPCs (with flight rotation)
+            normalNPCs.forEach(npc => {
+                ctx.save();
+
+                if (npc.telegraphTimer > 0) {
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
+                    ctx.fillRect(npc.x - 60, npc.y - 10, 120, npc.height + 10);
+                }
+
+                ctx.translate(npc.x + npc.width / 2, npc.y + npc.height / 2);
+                if (npc.rotation) ctx.rotate(npc.rotation);
+
+                ctx.fillStyle = npc.stunTimer > 0 ? '#94a3b8' : '#eab308';
+                ctx.fillRect(-npc.width / 2, -npc.height / 2, npc.width, npc.height);
+
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(npc.vx > 0 ? 0 : -15, -10, 12, 6);
+
+                ctx.restore();
+            });
+
+            // Draw Roblox Noob Player Character
+            drawNoobPlayer();
+
+            // Draw Floating Hit Particles
+            hitParticles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.font = 'bold 14px "Fredoka One"';
+                ctx.fillText(p.text, p.x, p.y);
+                ctx.globalAlpha = 1.0;
+            });
+
+            // Draw Night Dark Ambient Lighting Layer (Feature 19)
+            if (dayNightCycle.phase === 'night') {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+                ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+            }
+
+            ctx.restore();
+        }
+
+        // --- DRAW DYNAMIC SKY & CELESTIAL BODIES ---
+        function drawDynamicSky() {
+            const cycleT = dayNightCycle.time;
+            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+
+            if (cycleT < 110) {
+                // Day: Bright cyan to soft blue
+                grad.addColorStop(0, '#38bdf8');
+                grad.addColorStop(1, '#a5f3fc');
+            } else if (cycleT < 125) {
+                // Dusk: Orange / Pink gradient
+                grad.addColorStop(0, '#f97316');
+                grad.addColorStop(1, '#a855f7');
+            } else if (cycleT < 165) {
+                // Night: Deep indigo to dark navy
+                grad.addColorStop(0, '#020617');
+                grad.addColorStop(1, '#0f172a');
+            } else {
+                // Dawn: Purple to sunrise amber
+                grad.addColorStop(0, '#581c87');
+                grad.addColorStop(1, '#fde047');
+            }
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSkyBodies(cameraX) {
+            const cycleT = dayNightCycle.time;
+
+            if (cycleT >= 125 && cycleT < 165) {
+                // Draw Night Stars
+                nightStars.forEach(star => {
+                    const sx = (star.x - cameraX * 0.2) % (canvas.width + 1000) + cameraX - 200;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(animFrameCounter * 0.1 + star.twinkle) * 0.4})`;
+                    ctx.beginPath();
+                    ctx.arc(sx, star.y, star.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Draw Moon
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.arc(cameraX + canvas.width - 150, 100, 35, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (cycleT < 110) {
+                // Draw Sun
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(cameraX + 150, 90, 40, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // --- DRAW DETAILED TERRAIN ---
+        function drawDetailedZoneGround(zone) {
+            const start = zone.xStart;
+            const end = zone.xEnd;
+            const width = end - start;
+            const topY = 456;
+
+            ctx.fillStyle = zone.color;
+            ctx.fillRect(start, topY, width, canvas.height - topY);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px "Fredoka One", cursive';
+            ctx.fillText(`🚩 ${zone.name} (Vel Req: ${zone.reqSpeed.toLocaleString()})`, start + 20, 430);
+        }
+
+        function drawBossSprite(boss) {
+            const bx = boss.x - 25;
+            const by = boss.y;
+            const floatOffset = Math.sin(animFrameCounter * 0.1) * 4;
+
+            ctx.save();
+            if (boss.zoneId === 'bosque') {
+                ctx.fillStyle = '#78350f';
+                ctx.fillRect(bx, by, boss.width, boss.height);
+                ctx.fillStyle = '#15803d';
+                ctx.fillRect(bx - 10, by - 15, boss.width + 20, 30);
+            } else if (boss.zoneId === 'lago') {
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(bx, by + floatOffset, boss.width, boss.height);
+            } else {
+                ctx.fillStyle = '#dc2626';
+                ctx.fillRect(bx, by, boss.width, boss.height);
+            }
+            ctx.restore();
+        }
+
+        function drawCartel(x, y, title, subtitle, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y + 20, 8, 40);
+            ctx.fillRect(x - 30, y - 10, 68, 32);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px "Fredoka One"';
+            ctx.fillText(title, x - 25, y + 2);
+            ctx.fillText(subtitle, x - 25, y + 14);
+        }
+
+        // --- DRAW DETAILED TERRAIN WITH PIXEL ART DECORATIONS & TEXTURES ---
+        function pseudoRand(seed) {
+            let x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+            return x - Math.floor(x);
+        }
+
+        function drawDetailedZoneGround(zone) {
+            const start = zone.xStart;
+            const end = zone.xEnd;
+            const topY = 456;
+            const groundH = canvas.height - topY;
+
+            // Viewport Culling Optimization
+            const cameraX = player.x - canvas.width / 2;
+            if (end < cameraX - 150 || start > cameraX + canvas.width + 150) return;
+
+            // 1. Draw Underground Soil Base Layer
+            drawUndergroundBase(zone.id, start, end, topY, groundH);
+
+            // 2. Draw Zone Surface Layer & Textures
+            drawZoneSurface(zone.id, start, end, topY, zone.color);
+
+            // 3. Draw Procedural Pixel Art Props & Decorations
+            drawZoneDecorations(zone.id, start, end, topY);
+
+            // 4. Zone Name Sign / Marker
+            ctx.save();
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+            ctx.fillRect(start + 15, 410, 240, 26);
+            ctx.strokeStyle = zone.color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(start + 15, 410, 240, 26);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px "Fredoka One", cursive';
+            ctx.fillText(`🚩 ${zone.name} (Req: ${zone.reqSpeed.toLocaleString()}⚡)`, start + 25, 427);
+            ctx.restore();
+        }
+
+        function drawUndergroundBase(zoneId, start, end, topY, groundH) {
+            let subColor = '#27272a';
+            if (zoneId === 'base') subColor = '#0f172a';
+            else if (zoneId === 'bosque') subColor = '#3b1a0e';
+            else if (zoneId === 'lago') subColor = '#0c4a6e';
+            else if (zoneId === 'desierto') subColor = '#78350f';
+            else if (zoneId === 'jungla') subColor = '#1c1917';
+            else if (zoneId === 'nieve') subColor = '#0f172a';
+            else if (zoneId === 'volcan') subColor = '#18181b';
+            else if (zoneId === 'oceano') subColor = '#020617';
+            else if (zoneId === 'prehistorico') subColor = '#451a03';
+            else if (zoneId === 'cosmico') subColor = '#2e1065';
+            else if (zoneId === 'cerezos') subColor = '#831843';
+            else if (zoneId === 'titan') subColor = '#451a03';
+            else if (zoneId === 'angeles') subColor = '#2a0800';
+
+            // Deep underground fill
+            ctx.fillStyle = subColor;
+            ctx.fillRect(start, topY + 14, end - start, groundH - 14);
+
+            // Underground pixel rock texture noise
+            for (let x = start + 10; x < end - 10; x += 32) {
+                const r = pseudoRand(x * 1.5);
+                const py = topY + 22 + (r * 40);
+                ctx.fillStyle = 'rgba(255,255,255,0.06)';
+                ctx.fillRect(x, py, 12, 6);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(x + 2, py + 6, 12, 4);
+            }
+        }
+
+        function drawZoneSurface(zoneId, start, end, topY, mainColor) {
+            const width = end - start;
+
+            if (zoneId === 'base') {
+                // Concrete Base with Metal Trim & Caution Stripes
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(start, topY, width, 14);
+                // Yellow-black warning stripes
+                for (let x = start; x < end; x += 30) {
+                    ctx.fillStyle = '#facc15';
+                    ctx.fillRect(x, topY, 12, 4);
+                    ctx.fillStyle = '#020617';
+                    ctx.fillRect(x + 12, topY, 12, 4);
+                }
+                // Cyan Neon Line
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(start, topY, width, 2);
+            } 
+            else if (zoneId === 'bosque') {
+                // Grass surface with dark dirt spots & layered blades
+                ctx.fillStyle = '#15803d';
+                ctx.fillRect(start, topY, width, 14);
+                ctx.fillStyle = '#22c55e';
+                ctx.fillRect(start, topY, width, 4);
+
+                for (let x = start; x < end; x += 8) {
+                    const r = pseudoRand(x);
+                    if (r > 0.4) {
+                        ctx.fillStyle = '#4ade80';
+                        ctx.fillRect(x, topY - 3, 2, 4);
+                        ctx.fillRect(x + 3, topY - 5, 2, 6);
+                    } else if (r < 0.15) {
+                        ctx.fillStyle = '#78350f'; // Dirt patch
+                        ctx.fillRect(x, topY + 2, 10, 4);
+                    }
+                }
+            } 
+            else if (zoneId === 'lago') {
+                // Shore sand transitioning to animated water with reflections
+                ctx.fillStyle = '#0284c7';
+                ctx.fillRect(start, topY, width, 14);
+
+                // Water ripples and reflections
+                for (let x = start; x < end; x += 16) {
+                    const wave = Math.sin(x * 0.05 + animFrameCounter * 0.06) * 3;
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fillRect(x, topY + wave, 12, 3);
+                    ctx.fillStyle = '#7dd3fc';
+                    ctx.fillRect(x + 4, topY + wave + 4, 6, 2);
+                }
+
+                // Shore sand on borders
+                ctx.fillStyle = '#fde047';
+                ctx.fillRect(start, topY, 60, 14);
+                ctx.fillRect(end - 60, topY, 60, 14);
+            } 
+            else if (zoneId === 'desierto') {
+                // Warm sand with wavy dune contours
+                ctx.fillStyle = '#d97706';
+                ctx.fillRect(start, topY, width, 14);
+
+                for (let x = start; x < end; x += 12) {
+                    const r = pseudoRand(x * 0.8);
+                    ctx.fillStyle = r > 0.5 ? '#fef08a' : '#b45309';
+                    ctx.fillRect(x, topY + (r * 4), 8, 3);
+                }
+            } 
+            else if (zoneId === 'jungla') {
+                // Dark jungle soil & vibrant mossy top
+                ctx.fillStyle = '#047857';
+                ctx.fillRect(start, topY, width, 14);
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(start, topY, width, 4);
+
+                for (let x = start; x < end; x += 10) {
+                    const r = pseudoRand(x * 1.2);
+                    if (r > 0.3) {
+                        ctx.fillStyle = '#34d399';
+                        ctx.fillRect(x, topY - 4, 3, 5);
+                        ctx.fillRect(x + 4, topY - 2, 2, 3);
+                    }
+                }
+            } 
+            else if (zoneId === 'nieve') {
+                // Pure snow with cyan ice shading & mounds
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(start, topY, width, 14);
+                ctx.fillStyle = '#e0f2fe';
+                ctx.fillRect(start, topY + 4, width, 6);
+
+                for (let x = start; x < end; x += 14) {
+                    const r = pseudoRand(x * 0.9);
+                    if (r > 0.6) {
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.fillRect(x, topY, 6, 2);
+                    } else if (r < 0.2) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.arc(x + 5, topY, 6, Math.PI, 0);
+                        ctx.fill();
+                    }
+                }
+            } 
+            else if (zoneId === 'volcan') {
+                // Ash dark ground with glowing lava fissures & floating embers
+                ctx.fillStyle = '#27272a';
+                ctx.fillRect(start, topY, width, 14);
+
+                for (let x = start; x < end; x += 24) {
+                    const r = pseudoRand(x);
+                    if (r > 0.4) {
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fillRect(x, topY + 2, 14, 3);
+                        ctx.fillStyle = '#facc15';
+                        ctx.fillRect(x + 3, topY + 3, 8, 1);
+
+                        // Floating Ember particle
+                        const emberY = topY - ((animFrameCounter * 2 + x) % 35);
+                        ctx.fillStyle = '#f97316';
+                        ctx.fillRect(x + 5, emberY, 2, 2);
+                    }
+                }
+            } 
+            else if (zoneId === 'oceano') {
+                // Deep abyss floor with bioluminescent teal patches & rising bubbles
+                ctx.fillStyle = '#1e1b4b';
+                ctx.fillRect(start, topY, width, 14);
+
+                for (let x = start; x < end; x += 18) {
+                    const r = pseudoRand(x * 1.1);
+                    if (r > 0.5) {
+                        ctx.fillStyle = '#0d9488';
+                        ctx.fillRect(x, topY + 2, 10, 4);
+                        ctx.fillStyle = '#2dd4bf';
+                        ctx.fillRect(x + 2, topY + 3, 6, 2);
+                    }
+                    // Air bubbles rising
+                    const bubbleY = topY - ((animFrameCounter * 1.5 + x * 3) % 45);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(x + 8, bubbleY, 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            } 
+            else {
+                // Fallback Surface
+                ctx.fillStyle = mainColor;
+                ctx.fillRect(start, topY, width, 14);
+            }
+        }
+
+        function drawZoneDecorations(zoneId, start, end, topY) {
+            const cameraX = player.x - canvas.width / 2;
+            const drawStart = Math.max(start + 40, cameraX - 50);
+            const drawEnd = Math.min(end - 40, cameraX + canvas.width + 50);
+
+            for (let x = start + 50; x < end - 50; x += 75) {
+                if (x < drawStart || x > drawEnd) continue;
+
+                const r = pseudoRand(x);
+                const r2 = pseudoRand(x + 7);
+
+                if (zoneId === 'bosque') {
+                    if (r > 0.6) {
+                        // Pine / Oak Tree
+                        const treeH = 45 + Math.floor(r2 * 25);
+                        ctx.fillStyle = '#78350f';
+                        ctx.fillRect(x - 4, topY - treeH + 20, 8, treeH - 20);
+                        ctx.fillStyle = '#15803d';
+                        ctx.beginPath();
+                        ctx.arc(x, topY - treeH + 10, 18, 0, Math.PI * 2);
+                        ctx.arc(x - 10, topY - treeH + 18, 14, 0, Math.PI * 2);
+                        ctx.arc(x + 10, topY - treeH + 18, 14, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#22c55e';
+                        ctx.beginPath();
+                        ctx.arc(x - 3, topY - treeH + 6, 8, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (r > 0.35) {
+                        // Bushes & Flowers
+                        ctx.fillStyle = '#16a34a';
+                        ctx.beginPath();
+                        ctx.arc(x, topY - 6, 10, Math.PI, 0);
+                        ctx.fill();
+                        ctx.fillStyle = r2 > 0.5 ? '#ef4444' : '#facc15';
+                        ctx.fillRect(x - 4, topY - 12, 3, 3);
+                        ctx.fillRect(x + 3, topY - 10, 3, 3);
+                    } else {
+                        // Rock & Grass tuft
+                        ctx.fillStyle = '#64748b';
+                        ctx.fillRect(x - 6, topY - 8, 12, 8);
+                        ctx.fillStyle = '#94a3b8';
+                        ctx.fillRect(x - 4, topY - 8, 8, 3);
+                    }
+                }
+                else if (zoneId === 'lago') {
+                    if (r > 0.6) {
+                        // Reeds / Cattails (Juncos)
+                        ctx.fillStyle = '#15803d';
+                        ctx.fillRect(x - 2, topY - 22, 2, 22);
+                        ctx.fillRect(x + 3, topY - 18, 2, 18);
+                        ctx.fillStyle = '#78350f';
+                        ctx.fillRect(x - 3, topY - 22, 4, 7);
+                        ctx.fillRect(x + 2, topY - 18, 4, 6);
+                    } else if (r > 0.3) {
+                        // Water Lily Pad with Lotus Flower
+                        ctx.fillStyle = '#16a34a';
+                        ctx.beginPath();
+                        ctx.ellipse(x, topY + 2, 10, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#f472b6';
+                        ctx.fillRect(x - 2, topY - 3, 4, 4);
+                    } else {
+                        // River Pebbles
+                        ctx.fillStyle = '#475569';
+                        ctx.beginPath();
+                        ctx.ellipse(x, topY - 3, 7, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                else if (zoneId === 'desierto') {
+                    if (r > 0.55) {
+                        // Saguaro Cactus
+                        ctx.fillStyle = '#15803d';
+                        ctx.fillRect(x - 4, topY - 32, 8, 32);
+                        ctx.fillRect(x - 12, topY - 22, 8, 4);
+                        ctx.fillRect(x - 12, topY - 28, 4, 8);
+                        ctx.fillRect(x + 4, topY - 18, 8, 4);
+                        ctx.fillRect(x + 8, topY - 24, 4, 8);
+                        ctx.fillStyle = '#facc15';
+                        ctx.fillRect(x - 2, topY - 34, 4, 3);
+                    } else if (r > 0.3) {
+                        // Desert Rock
+                        ctx.fillStyle = '#b45309';
+                        ctx.fillRect(x - 8, topY - 10, 16, 10);
+                        ctx.fillStyle = '#d97706';
+                        ctx.fillRect(x - 6, topY - 10, 12, 4);
+                    } else {
+                        // Fossil Skull / Bones
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.fillRect(x - 5, topY - 6, 10, 6);
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(x - 3, topY - 4, 2, 2);
+                        ctx.fillRect(x + 1, topY - 4, 2, 2);
+                    }
+                }
+                else if (zoneId === 'jungla') {
+                    if (r > 0.5) {
+                        // Giant Tropical Ferns
+                        ctx.fillStyle = '#047857';
+                        ctx.beginPath();
+                        ctx.arc(x, topY - 10, 16, Math.PI * 0.8, Math.PI * 0.2);
+                        ctx.fill();
+                        ctx.fillStyle = '#10b981';
+                        ctx.fillRect(x - 2, topY - 24, 4, 24);
+                        // Exotic Purple Orchid
+                        ctx.fillStyle = '#e879f9';
+                        ctx.fillRect(x - 4, topY - 26, 8, 6);
+                    } else {
+                        // Mossy Ancient Ruin Pillar
+                        ctx.fillStyle = '#475569';
+                        ctx.fillRect(x - 8, topY - 28, 16, 28);
+                        ctx.fillStyle = '#15803d';
+                        ctx.fillRect(x - 8, topY - 28, 16, 5);
+                        ctx.fillRect(x - 4, topY - 14, 8, 6);
+                    }
+                }
+                else if (zoneId === 'nieve') {
+                    if (r > 0.55) {
+                        // Snow Pine Tree
+                        ctx.fillStyle = '#1e3a8a';
+                        ctx.fillRect(x - 3, topY - 35, 6, 35);
+                        ctx.fillStyle = '#0369a1';
+                        ctx.beginPath();
+                        ctx.moveTo(x, topY - 40);
+                        ctx.lineTo(x - 16, topY - 15);
+                        ctx.lineTo(x + 16, topY - 15);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.beginPath();
+                        ctx.moveTo(x, topY - 42);
+                        ctx.lineTo(x - 10, topY - 28);
+                        ctx.lineTo(x + 10, topY - 28);
+                        ctx.closePath();
+                        ctx.fill();
+                    } else if (r > 0.25) {
+                        // Ice Crystal Spire
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.beginPath();
+                        ctx.moveTo(x, topY - 20);
+                        ctx.lineTo(x - 6, topY);
+                        ctx.lineTo(x + 6, topY);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillStyle = '#e0f2fe';
+                        ctx.fillRect(x - 2, topY - 18, 3, 14);
+                    } else {
+                        // Frozen Boulder
+                        ctx.fillStyle = '#475569';
+                        ctx.fillRect(x - 7, topY - 9, 14, 9);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(x - 7, topY - 9, 14, 3);
+                    }
+                }
+                else if (zoneId === 'volcan') {
+                    if (r > 0.5) {
+                        // Obsidian Spike
+                        ctx.fillStyle = '#090d16';
+                        ctx.beginPath();
+                        ctx.moveTo(x, topY - 28);
+                        ctx.lineTo(x - 8, topY);
+                        ctx.lineTo(x + 8, topY);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillStyle = '#dc2626';
+                        ctx.fillRect(x - 1, topY - 20, 2, 16);
+                    } else {
+                        // Magma Pool
+                        ctx.fillStyle = '#ef4444';
+                        ctx.beginPath();
+                        ctx.ellipse(x, topY + 1, 12, 4, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fde047';
+                        ctx.fillRect(x - 4, topY, 8, 2);
+                    }
+                }
+                else if (zoneId === 'oceano') {
+                    if (r > 0.5) {
+                        // Swaying Coral / Kelp
+                        const sway = Math.sin(animFrameCounter * 0.08 + x) * 6;
+                        ctx.fillStyle = r2 > 0.5 ? '#10b981' : '#f43f5e';
+                        ctx.fillRect(x - 2 + sway, topY - 26, 4, 26);
+                        ctx.fillRect(x - 6 + sway * 0.7, topY - 18, 4, 18);
+                    } else {
+                        // Starfish
+                        ctx.fillStyle = '#fb7185';
+                        ctx.fillRect(x - 4, topY - 4, 9, 4);
+                        ctx.fillRect(x - 2, topY - 6, 5, 8);
+                    }
+                }
+                else if (zoneId === 'cerezos') {
+                    if (r > 0.6) {
+                        ctx.fillStyle = '#be185d';
+                        ctx.fillRect(x - 4, topY - 30, 8, 30);
+                        ctx.fillStyle = '#f472b6';
+                        ctx.beginPath();
+                        ctx.arc(x, topY - 32, 16, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = '#f472b6';
+                        ctx.fillRect(x - 4, topY - 2, 3, 2);
+                        ctx.fillRect(x + 3, topY - 3, 4, 2);
+                    }
+                }
+                else if (zoneId === 'prehistorico') {
+                    if (r > 0.5) {
+                        ctx.strokeStyle = '#fef3c7';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.arc(x, topY, 14, Math.PI, 0);
+                        ctx.stroke();
+                    }
+                }
+                else if (zoneId === 'cosmico') {
+                    if (r > 0.4) {
+                        ctx.fillStyle = '#c084fc';
+                        ctx.beginPath();
+                        ctx.moveTo(x, topY - 22);
+                        ctx.lineTo(x - 5, topY);
+                        ctx.lineTo(x + 5, topY);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.fillRect(x - 2, topY - 16, 4, 10);
+                    }
+                }
+            }
+        }
+
+        // --- FUNCIONES AUXILIARES Y DIBUJO DEL JUGADOR ---
+        function checkOverlap(r1, r2) {
+            const r1x = r1.x, r1y = r1.y, r1w = r1.width || 0, r1h = r1.height || 0;
+            const r2x = r2.x, r2y = r2.y, r2w = r2.width || 0, r2h = r2.height || 0;
+            return r1x < r2x + r2w && r1x + r1w > r2x && r1y < r2y + r2h && r1y + r1h > r2y;
+        }
+
+        function drawNoobPlayer() {
+            ctx.save();
+
+            // Trail (Rastro)
+            if (gameState.activeTrail && gameState.activeTrail !== 'none') {
+                const trail = TRAILS.find(t => t.id === gameState.activeTrail);
+                if (trail) {
+                    ctx.fillStyle = trail.color;
+                    ctx.globalAlpha = 0.35;
+                    ctx.fillRect(player.x - player.facing * 12, player.y + 10, player.width, player.height - 10);
+                    ctx.globalAlpha = 1.0;
+                }
+            }
+
+            if (player.isDodging) {
+                ctx.globalAlpha = 0.5;
+            }
+
+            const px = player.x;
+            const py = player.y;
+
+            // Piernas (Verde Noob)
+            ctx.fillStyle = '#16a34a';
+            ctx.fillRect(px + 4, py + 36, 12, 20);
+            ctx.fillRect(px + 20, py + 36, 12, 20);
+
+            // Torso (Azul Noob)
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(px + 4, py + 16, 28, 20);
+
+            // Cabeza (Amarillo Noob)
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(px + 8, py, 20, 16);
+
+            // Ojos
+            ctx.fillStyle = '#000000';
+            if (player.facing === 1) {
+                ctx.fillRect(px + 20, py + 4, 3, 4);
+                ctx.fillRect(px + 24, py + 4, 3, 4);
+            } else {
+                ctx.fillRect(px + 9, py + 4, 3, 4);
+                ctx.fillRect(px + 13, py + 4, 3, 4);
+            }
+
+            // Brazos (Amarillo Noob)
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(px - 2, py + 16, 6, 16);
+            ctx.fillRect(px + 32, py + 16, 6, 16);
+
+            // Huevo cargado en manos
+            if (gameState.carriedEgg) {
+                ctx.fillStyle = gameState.carriedEgg.eggType.color;
+                ctx.beginPath();
+                ctx.ellipse(px + (player.facing === 1 ? 32 : 4), py + 14, 8, 11, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            // Bate Equipado
+            const bat = BATS_CATALOG[gameState.equippedBat] || BATS_CATALOG['bate_madera'];
+            ctx.save();
+            ctx.translate(px + (player.facing === 1 ? 30 : 6), py + 22);
+            const swingAngle = player.isAttacking ? (player.facing === 1 ? 0.8 : -0.8) : (player.facing === 1 ? -0.3 : 0.3);
+            ctx.rotate(swingAngle);
+
+            ctx.fillStyle = bat.color;
+            ctx.fillRect(-2, -22, 6, 24);
+
+            if (bat.glow) {
+                ctx.shadowColor = bat.glow;
+                ctx.shadowBlur = 8;
+                ctx.fillRect(-2, -22, 6, 24);
+            }
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        // --- SISTEMA DE INVENTARIO Y MODALES ---
+        function openInventoryModal() {
+            renderInventoryGrid();
+            openModal('inventory-modal');
+        }
+
+        function openShopModal() {
+            renderShopModal();
+            openModal('shop-modal');
+        }
+
+        function openBatShopModal() {
+            renderBatShopGrid();
+            openModal('bat-shop-modal');
+        }
+
+        function switchInvTab(tab) {
+            document.getElementById('tab-panel-eggs')?.classList.add('hidden');
+            document.getElementById('tab-panel-pets')?.classList.add('hidden');
+            document.getElementById('tab-panel-bats')?.classList.add('hidden');
+
+            document.getElementById('tab-btn-eggs')?.classList.replace('bg-purple-600', 'bg-slate-800');
+            document.getElementById('tab-btn-pets')?.classList.replace('bg-purple-600', 'bg-slate-800');
+            document.getElementById('tab-btn-bats')?.classList.replace('bg-purple-600', 'bg-slate-800');
+
+            if (tab === 'eggs') {
+                document.getElementById('tab-panel-eggs')?.classList.remove('hidden');
+                document.getElementById('tab-btn-eggs')?.classList.replace('bg-slate-800', 'bg-purple-600');
+            } else if (tab === 'pets') {
+                document.getElementById('tab-panel-pets')?.classList.remove('hidden');
+                document.getElementById('tab-btn-pets')?.classList.replace('bg-slate-800', 'bg-purple-600');
+            } else if (tab === 'bats') {
+                document.getElementById('tab-panel-bats')?.classList.remove('hidden');
+                document.getElementById('tab-btn-bats')?.classList.replace('bg-slate-800', 'bg-purple-600');
+            }
+            renderInventoryGrid();
+        }
+
+        function renderInventoryGrid() {
+            // Huevos Cerrados
+            const eggsGrid = document.getElementById('inv-eggs-grid');
+            if (eggsGrid) {
+                if (gameState.inventoryEggs.length === 0) {
+                    eggsGrid.innerHTML = `<div class="col-span-2 text-center text-slate-400 py-6">No tienes huevos cargando. ¡Roba uno en las zonas!</div>`;
+                } else {
+                    eggsGrid.innerHTML = gameState.inventoryEggs.map(egg => {
+                        const isReady = egg.timer <= 0;
+                        const readyText = isReady ? '¡LISTO PARA ECLOSIONAR!' : `Incubando: ${Math.ceil(egg.timer)}s`;
+                        const btnClass = isReady 
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse' 
+                            : 'bg-slate-700 text-slate-400 cursor-not-allowed';
+                        return `
+                            <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border-purple-500/30">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-3xl">🥚</span>
+                                    <div>
+                                        <div class="font-bold text-sm" style="color:${egg.eggType.color}">${egg.eggType.name}</div>
+                                        <div class="text-xs text-slate-300">${readyText}</div>
+                                    </div>
+                                </div>
+                                <button onclick="hatchEgg('${egg.id}')" ${!isReady ? 'disabled' : ''} class="${btnClass} font-game px-3 py-1.5 rounded-xl text-xs">
+                                    ${isReady ? 'Eclosionar 🐣' : 'Esperando...'}
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Mascotas
+            const petsGrid = document.getElementById('inv-pets-grid');
+            if (petsGrid) {
+                const allPets = [...gameState.placedPets, ...gameState.inventoryPets];
+                document.getElementById('inv-base-slots-text').innerText = `${gameState.placedPets.length}/${gameState.baseSlotsMax}`;
+                
+                if (allPets.length === 0) {
+                    petsGrid.innerHTML = `<div class="col-span-2 text-center text-slate-400 py-6">Aún no tienes mascotas. ¡Abre huevos para conseguirlas!</div>`;
+                } else {
+                    petsGrid.innerHTML = allPets.map(pet => {
+                        const isPlaced = gameState.placedPets.some(p => p.id === pet.id);
+                        return `
+                            <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border-slate-700">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl">🐾</span>
+                                    <div>
+                                        <div class="font-bold text-sm text-purple-300">${pet.name} (${pet.rarity})</div>
+                                        <div class="text-xs text-emerald-400">+${pet.coinsPerSec || 5}💰/seg</div>
+                                    </div>
+                                </div>
+                                <button onclick="toggleEquipPet('${pet.id}')" class="font-game px-3 py-1.5 rounded-xl text-xs ${isPlaced ? 'bg-amber-600 text-white' : 'bg-indigo-600 text-white'}">
+                                    ${isPlaced ? 'Guardar' : 'Equipar'}
+                                </button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Bates
+            const batsGrid = document.getElementById('inv-bats-grid');
+            if (batsGrid) {
+                batsGrid.innerHTML = gameState.ownedBats.map(batKey => {
+                    const bat = BATS_CATALOG[batKey];
+                    const isEquipped = gameState.equippedBat === batKey;
+                    return `
+                        <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border-slate-700">
+                            <div class="flex items-center gap-3">
+                                <span class="text-2xl">🏏</span>
+                                <div>
+                                    <div class="font-bold text-sm" style="color:${bat.color}">${bat.name}</div>
+                                    <div class="text-xs text-slate-300">Daño: ${bat.damage} | Fuerza: ${bat.knockback}</div>
+                                </div>
+                            </div>
+                            <button onclick="equipBat('${batKey}')" class="font-game px-3 py-1.5 rounded-xl text-xs ${isEquipped ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'}">
+                                ${isEquipped ? 'Equipado ✓' : 'Equipar'}
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function hatchEgg(eggId) {
+            const idx = gameState.inventoryEggs.findIndex(e => e.id === eggId);
+            if (idx === -1) return;
+            const egg = gameState.inventoryEggs[idx];
+            if (egg.timer > 0) {
+                showToast("¡El huevo sigue incubando!", "⏳");
+                return;
+            }
+
+            gameState.inventoryEggs.splice(idx, 1);
+
+            const pet = {
+                id: 'pet_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                name: `Mascota ${egg.eggType.rarity}`,
+                rarity: egg.eggType.rarity,
+                coinsPerSec: (EGG_TYPES.findIndex(e => e.id === egg.eggType.id) + 1) * 10,
+                color: egg.eggType.color
+            };
+
+            if (gameState.placedPets.length < gameState.baseSlotsMax) {
+                gameState.placedPets.push(pet);
+            } else {
+                gameState.inventoryPets.push(pet);
+            }
+
+            playSFX('fanfare');
+            showToast(`🎉 ¡Eclosionaste un ${egg.eggType.name}! Mascota: ${pet.name}`, "🐣");
+            renderInventoryGrid();
+        }
+
+        function toggleEquipPet(petId) {
+            const placedIdx = gameState.placedPets.findIndex(p => p.id === petId);
+            if (placedIdx !== -1) {
+                const pet = gameState.placedPets.splice(placedIdx, 1)[0];
+                gameState.inventoryPets.push(pet);
+            } else {
+                const invIdx = gameState.inventoryPets.findIndex(p => p.id === petId);
+                if (invIdx !== -1) {
+                    if (gameState.placedPets.length >= gameState.baseSlotsMax) {
+                        showToast("¡Espacios de base llenos!", "⚠️");
+                        return;
+                    }
+                    const pet = gameState.inventoryPets.splice(invIdx, 1)[0];
+                    gameState.placedPets.push(pet);
+                }
+            }
+            renderInventoryGrid();
+        }
+
+        function equipBat(batKey) {
+            if (gameState.ownedBats.includes(batKey)) {
+                gameState.equippedBat = batKey;
+                showToast(`Equipaste: ${BATS_CATALOG[batKey].name}`, "🏏");
+                renderInventoryGrid();
+            }
+        }
+
+        // --- TIENDAS Y MEJORAS ---
+        function renderShopModal() {
+            document.getElementById('treadmill-level-text').innerText = `Multiplicador: Nivel ${gameState.treadmillLevel} (+${gameState.treadmillLevel * 20}⚡/s)`;
+            document.getElementById('treadmill-cost').innerText = `${gameState.treadmillLevel * 150} 💰`;
+
+            document.getElementById('slots-level-text').innerText = `Capacidad: ${gameState.baseSlotsMax} Espacios`;
+            document.getElementById('slot-cost').innerText = `${gameState.baseSlotsMax * 250} 💰`;
+
+            const trailsContainer = document.getElementById('trails-container');
+            if (trailsContainer) {
+                trailsContainer.innerHTML = TRAILS.map(trail => {
+                    const owned = gameState.ownedTrails.includes(trail.id);
+                    const active = gameState.activeTrail === trail.id;
+                    return `
+                        <div class="glass-panel p-3 rounded-2xl flex items-center justify-between">
+                            <div>
+                                <div class="font-bold text-sm" style="color:${trail.color}">${trail.name}</div>
+                                <div class="text-xs text-slate-300">Multiplicador x${trail.mult}</div>
+                            </div>
+                            ${owned ? `
+                                <button onclick="selectTrail('${trail.id}')" class="font-game px-3 py-1.5 rounded-xl text-xs ${active ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'}">
+                                    ${active ? 'Activo' : 'Usar'}
+                                </button>
+                            ` : `
+                                <button onclick="buyTrail('${trail.id}')" class="font-game bg-amber-500 hover:bg-amber-400 text-amber-950 px-3 py-1.5 rounded-xl text-xs">
+                                    ${trail.cost} 💰
+                                </button>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function buyTreadmillUpgrade() {
+            const cost = gameState.treadmillLevel * 150;
+            if (gameState.coins >= cost) {
+                gameState.coins -= cost;
+                gameState.treadmillLevel++;
+                playSFX('fanfare');
+                showToast(`Caminadora mejorada a Nivel ${gameState.treadmillLevel}!`, "⚡");
+                renderShopModal();
+            } else {
+                showToast("Monedas insuficientes.", "⚠️");
+            }
+        }
+
+        function buyBaseSlotUpgrade() {
+            const cost = gameState.baseSlotsMax * 250;
+            if (gameState.coins >= cost) {
+                gameState.coins -= cost;
+                gameState.baseSlotsMax += 2;
+                playSFX('fanfare');
+                showToast(`Capacidad ampliada a ${gameState.baseSlotsMax} mascotas!`, "🏠");
+                renderShopModal();
+            } else {
+                showToast("Monedas insuficientes.", "⚠️");
+            }
+        }
+
+        function buyTrail(trailId) {
+            const trail = TRAILS.find(t => t.id === trailId);
+            if (!trail) return;
+            if (gameState.coins >= trail.cost) {
+                gameState.coins -= trail.cost;
+                gameState.ownedTrails.push(trailId);
+                gameState.activeTrail = trailId;
+                playSFX('fanfare');
+                showToast(`¡Compraste el rastro ${trail.name}!`, "✨");
+                renderShopModal();
+            } else {
+                showToast("Monedas insuficientes.", "⚠️");
+            }
+        }
+
+        function selectTrail(trailId) {
+            if (gameState.ownedTrails.includes(trailId)) {
+                gameState.activeTrail = trailId;
+                renderShopModal();
+            }
+        }
+
+        function renderBatShopGrid() {
+            const batShopGrid = document.getElementById('bat-shop-grid');
+            if (!batShopGrid) return;
+
+            batShopGrid.innerHTML = Object.keys(BATS_CATALOG).map(key => {
+                const bat = BATS_CATALOG[key];
+                const owned = gameState.ownedBats.includes(key);
+                const isEquipped = gameState.equippedBat === key;
+
+                return `
+                    <div class="glass-panel p-3 rounded-2xl flex items-center justify-between border-slate-700">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🏏</span>
+                            <div>
+                                <div class="font-bold text-sm" style="color:${bat.color}">${bat.name}</div>
+                                <div class="text-xs text-slate-300">Daño: ${bat.damage} | Fuerza: ${bat.knockback}</div>
+                            </div>
+                        </div>
+                        ${owned ? `
+                            <button onclick="equipBat('${key}')" class="font-game px-3 py-1.5 rounded-xl text-xs ${isEquipped ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-200'}">
+                                ${isEquipped ? 'Equipado' : 'Equipar'}
+                            </button>
+                        ` : `
+                            <button onclick="buyBat('${key}')" class="font-game bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded-xl text-xs">
+                                Comprar (${bat.cost} 💰)
+                            </button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function buyBat(batKey) {
+            const bat = BATS_CATALOG[batKey];
+            if (!bat) return;
+            if (gameState.coins >= bat.cost) {
+                gameState.coins -= bat.cost;
+                gameState.ownedBats.push(batKey);
+                gameState.equippedBat = batKey;
+                playSFX('fanfare');
+                showToast(`¡Compraste y equipaste: ${bat.name}!`, "🏏");
+                renderBatShopGrid();
+            } else {
+                showToast("Monedas insuficientes.", "⚠️");
+            }
+        }
+
+        // --- PERSISTENCIA DE DATOS (GUARDADO/CARGADO/EXPORTADO) ---
+        function saveGameData(manual = false) {
+            try {
+                localStorage.setItem('roba_un_huevo_2d_save', JSON.stringify(gameState));
+                if (manual) showToast("Partida guardada correctamente.", "💾");
+            } catch(e) {}
+        }
+
+        function loadGameData(manual = false) {
+            try {
+                const data = localStorage.getItem('roba_un_huevo_2d_save');
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    gameState = { ...gameState, ...parsed };
+                    if (manual) showToast("Partida cargada correctamente.", "📂");
+                    updateHUDDisplays();
+                } else if (manual) {
+                    showToast("No hay partida guardada.", "⚠️");
+                }
+            } catch(e) {}
+        }
+
+        function exportGameSave() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameState));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "roba_un_huevo_save.json");
+            dlAnchorElem.click();
+            showToast("Partida exportada.", "📥");
+        }
+
+        function importGameSave(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    gameState = { ...gameState, ...parsed };
+                    saveGameData(false);
+                    updateHUDDisplays();
+                    showToast("Partida importada con éxito.", "📤");
+                } catch(err) {
+                    showToast("Archivo de guardado no válido.", "❌");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        let confirmClicks = 0;
+        function showCustomConfirm(msg, onConfirm) {
+            confirmClicks++;
+            if (confirmClicks >= 2) {
+                confirmClicks = 0;
+                onConfirm();
+            } else {
+                showToast(msg + " (Haz clic de nuevo para confirmar)", "⚠️");
+                setTimeout(() => { confirmClicks = 0; }, 3500);
+            }
+        }
+
+        // Autoguardado periódico
+        setInterval(() => {
+            if (gameStarted) saveGameData(false);
+        }, 10000);
+
+        // --- NOTIFICACIONES EN PANTALLA ---
+        let toastTimeout = null;
+        function showToast(msg, icon = '🥚') {
+            const banner = document.getElementById('toast-banner');
+            const msgEl = document.getElementById('toast-msg');
+            const iconEl = document.getElementById('toast-icon');
+
+            if (!banner || !msgEl || !iconEl) return;
+
+            msgEl.innerText = msg;
+            iconEl.innerText = icon;
+
+            banner.classList.remove('hidden');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
+```eod
+
+He corregido el error de sintaxis del script y completado todas las funciones pendientes (dibujo del jugador Noob, eclosión de huevos, tiendas, gestión de inventario y guardado). El juego ya se ejecuta y funciona perfectamente en el visualizador.
